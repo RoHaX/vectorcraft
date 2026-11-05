@@ -3261,6 +3261,58 @@ fn legacy_special_characters_join_the_story() {
     assert_eq!(t.plain_text(), "Hi");
 }
 
+/// A tab definition (`Xb`, `Xe`, `XB`, §22.6) sets the paragraph's tab stops, sorted by position
+/// with one stop at each position; each paragraph keeps the stops in force at its first character,
+/// and they last into the next text object. A definition with no stops leaves the default ones.
+#[test]
+fn legacy_tab_definitions_set_the_paragraph_tab_stops() {
+    use vectorcraft_doc::TabAlign;
+    let stops = |p: &vectorcraft_doc::ParaStyle| p.tabs.iter().map(|t| (t.position, t.align)).collect::<Vec<_>>();
+    let ruler = "36 5 Xb\n0 0 3 144 Xe\n0 0 1 72 Xe\n0 0 2 200.5 Xe\n0 0 4 250 Xe\n0 0 2 72 Xe\nXB";
+    let two_paragraphs = point_type(ruler, "A\\tB\\r").replace("TO\n", "36 0 Xb\nXB\n(C\\tD) Tx\nTO\n");
+    let texts = legacy_texts(&format!("{two_paragraphs}{}", point_type("", "E")));
+    assert_eq!(texts.len(), 2);
+    let want = vec![(72.0, TabAlign::Left), (144.0, TabAlign::Right), (200.5, TabAlign::Center), (250.0, TabAlign::Decimal)];
+    let one = texts[0].para_at(0);
+    assert_eq!(stops(one), want);
+    assert!(one.tabs.iter().all(|t| t.leader.is_empty() && t.align_on == '.'));
+    assert!(texts[0].para_at(1).tabs.is_empty(), "an empty definition leaves the default stops");
+    assert!(texts[1].para_at(0).tabs.is_empty(), "the next text object keeps the empty definition");
+    let texts = legacy_texts(&format!("{}{}", point_type(ruler, "A"), point_type("", "B")));
+    assert_eq!(stops(texts[1].para_at(0)), want, "the next text object keeps the stops");
+}
+
+/// A tab description whose type is not 1 to 4 or whose position is missing, not a number,
+/// negative or past 100,000 pt is skipped; so is one outside a tab definition, and an `XB` without
+/// an `Xb` leaves the stops as they were.
+#[test]
+fn legacy_tab_descriptions_out_of_range_are_skipped() {
+    let bad = "0 0 5 90 Xe\n0 0 0 90 Xe\n0 0 1.5 90 Xe\n0 0 1 -1 Xe\n0 0 1 100001 Xe\n0 0 1 /x Xe\n1 Xe";
+    let texts = legacy_texts(&point_type(&format!("0 0 1 10 Xe\n36 2 Xb\n{bad}\n0 0 3 100000 Xe\n0 0 1 0 Xe\nXB\nXB\n0 0 1 50 Xe"), "Hi"));
+    let tabs: Vec<f64> = texts[0].para_at(0).tabs.iter().map(|t| t.position).collect();
+    assert_eq!(tabs, [0.0, 100_000.0]);
+}
+
+/// A tab definition whose descriptions were all skipped leaves the default stops; a definition
+/// keeps its first 1024 stops; and a definition left open (an `Xb` with no `XB`) ends at the next
+/// text object's `To`, so that object's descriptions outside a definition are skipped.
+#[test]
+fn legacy_tab_definitions_skipped_capped_and_left_open() {
+    let positions = |t: &vectorcraft_doc::TextObject| t.para_at(0).tabs.iter().map(|t| t.position).collect::<Vec<f64>>();
+    let all_skipped = format!("{}{}", point_type("36 1 Xb\n0 0 1 72 Xe\nXB", "A"), point_type("36 1 Xb\n0 0 9 90 Xe\nXB", "B"));
+    let texts = legacy_texts(&all_skipped);
+    assert_eq!(positions(&texts[0]), [72.0]);
+    assert!(texts[1].para_at(0).tabs.is_empty(), "a definition with every stop skipped leaves the default stops");
+    let many: String = (0..1100).map(|i| format!("0 0 1 {i} Xe\n")).collect();
+    let texts = legacy_texts(&point_type(&format!("36 1100 Xb\n{many}XB"), "C"));
+    assert_eq!(positions(&texts[0]).len(), 1024);
+    assert_eq!(positions(&texts[0]).last(), Some(&1023.0));
+    let open = format!("{}{}", point_type("36 1 Xb\n0 0 1 72 Xe", "D"), point_type("0 0 1 90 Xe\nXB", "E"));
+    let texts = legacy_texts(&open);
+    assert!(texts[0].para_at(0).tabs.is_empty(), "an unended definition sets no stops");
+    assert!(texts[1].para_at(0).tabs.is_empty(), "the next object's `To` ends the open definition");
+}
+
 /// `Te` (end render, §22.6) reads in a text object with no operands and with four, inside a tab
 /// definition too, and keeps nothing; so does `TM` (pop text matrix, §22.6).
 #[test]
@@ -6367,6 +6419,41 @@ fn a_brushs_art_takes_the_patterns_defined_before_it() {
     assert!(matches!(fill(&s.art), Paint::Pattern { ref pattern, .. } if pattern == "Dots"), "{:?}", r.warnings);
 }
 
+/// A brush's art filled with a pattern defined in the version 7 form places the tiles with the
+/// fill's offset, scale, rotation, reflection and shear operands, and a brush whose art has such a
+/// fill without all nine of them isn't read.
+#[test]
+fn a_brushs_art_places_a_version_7_patterns_tiles_with_its_operands() {
+    let def = pattern7("Grid", "(0 g) @ _ &\n");
+    let read_with = |ops: &str| {
+        let section = format!("%AI8_BeginBrushPattern\n(Dot art)\n0 A\n(Grid) {ops} p\n{}f\n%AI8_EndBrushPattern\n", rect_path(0.0, 0.0, 4.0, 4.0));
+        read_ok(&format!("{def}{section}{}{}", plugin_object(SCATTER, "Spray", SPRAY), layer("")))
+    };
+    let placed = |ops: &str| {
+        let r = read_with(ops);
+        let lib = vectorcraft_brush::library(&r.doc);
+        let vectorcraft_brush::BrushKind::Scatter(s) = brush_named(&lib, "Spray") else { panic!("scatter") };
+        match fill(&s.art) {
+            Paint::Pattern { xf, .. } => xf,
+            p => panic!("{ops}: {p:?} {:?}", r.warnings),
+        }
+    };
+    let plain = placed("0 0 1 1 0 0 0 0 0 [1 0 0 1 0 0]");
+    // The operands and the move they make from the plain placement (a b c d e f): those of
+    // `a_pattern_fill_applies_its_offset_scale_rotation_reflection_and_shear` with y down, as the
+    // art's space has it.
+    let cases = [
+        ("10 15 1 1 0 0 0 0 0 [1 0 0 1 0 0]", [1.0, 0.0, 0.0, 1.0, 10.0, -15.0]),
+        ("-5 7 2 .5 -45 0 0 -15 45 [1 0 0 1 0 0]", [1.793151, 0.353553, -1.035276, 0.353553, -5.0, -7.0]),
+    ];
+    for (ops, want) in cases {
+        let got = (placed(ops) * plain.inverse()).as_coeffs();
+        assert!(got.iter().zip(want).all(|(g, w)| (g - w).abs() < 1e-6), "{ops}: {got:?}");
+    }
+    let r = read_with("0 0 1 1 0 0 0 0 [1 0 0 1 0 0]");
+    assert!(!vectorcraft_brush::library(&r.doc).iter().any(|b| b.name == "Spray"), "{:?}", r.warnings);
+}
+
 /// A file without brush objects keeps the default brushes.
 #[test]
 fn a_file_without_brushes_keeps_the_default_ones() {
@@ -6427,6 +6514,107 @@ fn a_gradients_br_is_not_a_brush() {
     assert!(!r.doc.unknown.contains_key(vectorcraft_brush::DOC_KEY));
     let Paint::Gradient(g) = fill(&art(&r.doc)[0]) else { panic!("a gradient: {:?}", r.warnings) };
     assert_eq!(g.gradient.stops.len(), 2);
+}
+
+/// The Brush Options codes for how a Calligraphic brush's values vary: Tilt, Bearing and Rotation
+/// are the pen's other channels (#372: a 6D Art Pen brush varies its diameter with the pressure,
+/// its roundness with the bearing and its angle with the barrel's rotation). The stylus wheel isn't
+/// read: it varies at random, as an unknown code does.
+#[test]
+fn a_calligraphic_brushs_pen_channels_come_in_by_their_codes() {
+    use vectorcraft_brush::Variation::{Bearing, Fixed, Pressure, Random, Rotation, Tilt};
+    let modes = |params: &str| {
+        let d = brush::parse_tool_object(brush::Tool::Calligraphic, "Pen", params).unwrap();
+        let brush::DraftKind::Calligraphic(c) = d.kind else { panic!("{d:?}") };
+        c.modes.unwrap()
+    };
+    assert_eq!(modes("1 51 69 13 57 -346 14 2 5 6 0"), [Rotation, Bearing, Pressure]);
+    assert_eq!(modes("1 2 6 40 60 -30 10 4 4 4 0"), [Tilt, Tilt, Tilt]);
+    assert_eq!(modes("1 2 6 40 60 -30 10 3 3 3 0"), [Random, Random, Random], "the stylus wheel");
+    assert_eq!(modes("1 4 4 50 50 10 10 3 9 9 0"), [Fixed, Fixed, Fixed], "nothing to vary");
+}
+
+/// A 6D Art Pen brush: diameter 4 to 8 with the pressure, roundness 30 to 50 with the bearing and
+/// angle -150 to 210 with the barrel's rotation.
+const SIX_D: &str = "1 4 8 30 50 -150 210 2 5 6 0";
+
+/// The style `Inked`: a stroke in red of weight `weight` with the Calligraphic brush `brush` at
+/// diameter, roundness and angle `settings` (each its value and variation either side), varying by
+/// the codes `codes`, its angle relative to `relative` (0 the page).
+fn brushed_style(brush: &str, weight: f64, settings: [(f64, f64); 3], codes: [u8; 3], relative: u8) -> String {
+    let [(d, dv), (r, rv), (a, av)] = settings;
+    let [dm, rm, am] = codes;
+    format!(
+        "%AI9_BeginArtStyles\n/KnownStyle :\n(Inked) /Name ,\n/ActiveStyle :\n/CompoundFilter :\n(Chain Style Filter) 0 0 /Filter ,\n1 /Visible ,\n\
+         /CompoundFilter :\n(Stack Style Filter) 0 0 /Filter ,\n1 /Visible ,\n\
+         /BasicFilter :\n({CALLIGRAPHIC}) 1 0 /Filter ,\n1 /Visible ,\n(Calligraphic Brush) /Title ,\n2 /FillOrStroke ,\n/Dictionary : /NotRecorded ,\n\
+         /StrokeStyle : 0 R\n0 1 1 0 1 0 0 XA\n0 1 0 0 0 Xy\n0 J 0 j {weight} w 10 M []0 d\n0 XR\n1 0 Xd\n/Def ;\n (StrokeStyle) ,\n\
+         {d} /Real (Diameter) ,\n{dv} /Real (DiameterVariation) ,\n{dm} /Int (DiameterDependsOn) ,\n\
+         {r} /Real (Roundness) ,\n{rv} /Real (RoundnessVariation) ,\n{rm} /Int (RoundnessDependsOn) ,\n\
+         {a} /Real (Angle) ,\n{av} /Real (AngleVariation) ,\n{am} /Int (AngleDependsOn) ,\n{relative} /Int (AngleRelativeTo) ,\n\
+         ({brush}) /UnicodeString (DisplayString) ,\n/GObjRef : ({brush}) ({CALLIGRAPHIC}) /PluginObject ; (Brush) ,\n; /Dict ;\n /Part ,\n\
+         /BasicFilter :\n(Conduit Filter) 0 0 /Filter ,\n1 /Visible ,\n;\n /Part ,\n\
+         /BasicFilter :\n(Fill Style Filter) 0 0 /Filter ,\n1 /Visible ,\n/Dictionary : /NotRecorded ,\n\
+         /FillStyle : 0 O\n0 0 0 0 k\n0 0 Xd\n/Def ;\n (FillStyle) ,\n; /Dict ;\n /Part ,\n\
+         ;\n /Part ,\n;\n%AI9_EndArtStyles\n"
+    )
+}
+
+/// The settings [`SIX_D`] has, as an art style writes them.
+const SIX_D_SETTINGS: [(f64, f64); 3] = [(6.0, 2.0), (40.0, 10.0), (30.0, 180.0)];
+
+/// A brushed path as the file writes it: its drawn look (a filled outline) in a group, then the
+/// path itself on `%_` lines, unpainted, with the style `Inked`.
+fn brushed_path() -> String {
+    let line = "20 20 m\n100 60 L\n";
+    format!("0 Ae\nu\n{RED}{}f\nU\n0 0 Xd\n6 () XW\n%_{}n\n1 (Inked) XW\n", rect_path(20.0, 18.0, 100.0, 62.0), line.replace('\n', "\n%_"))
+}
+
+/// A path drawn with a Calligraphic brush comes in as the path, its stroke in that brush at its
+/// weight (the weight scales the brush), not as its drawn look: here a 6D Art Pen brush, whose
+/// channels the brush keeps (#372).
+#[test]
+fn a_path_with_a_calligraphic_brush_comes_in_brushed() {
+    let def = plugin_object(CALLIGRAPHIC, "Six D", SIX_D);
+    let style = brushed_style("Six D", 0.5, SIX_D_SETTINGS, [2, 5, 6], 0);
+    let r = read_ok(&format!("{def}{style}{}", layer(&brushed_path())));
+    let a = art(&r.doc);
+    assert_eq!(a.len(), 1, "{a:#?}");
+    assert!(matches!(a[0].kind, NodeKind::Path { .. }), "the path, not its look: {a:#?}");
+    assert!(!r.warnings.iter().any(|w| w.contains("drawn look")), "{:?}", r.warnings);
+    let st = a[0].appearance.stroke().unwrap();
+    assert_eq!((st.brush.as_deref(), st.width, st.paint.color()), (Some("Six D"), 0.5, Some(Color::rgb(1.0, 0.0, 0.0))));
+    assert!(a[0].appearance.fill().is_none_or(|f| f.paint.is_none()), "{:?}", a[0].appearance);
+    use vectorcraft_brush::{BrushKind, Variation};
+    let lib = vectorcraft_brush::library(&r.doc);
+    let BrushKind::Calligraphic(c) = brush_named(&lib, "Six D") else { panic!("calligraphic") };
+    assert_eq!(c.modes, Some([Variation::Rotation, Variation::Bearing, Variation::Pressure]));
+    // With no pen recorded on the path, the nib is the brush's own at the stroke's weight.
+    let pieces = vectorcraft_brush::stroke_pieces(&r.doc, &lib[0], &a[0].path_data().unwrap().to_bezpath(), st);
+    let height = pieces.iter().filter_map(|n| n.geometric_bounds()).map(|b| b.height()).fold(0.0, f64::max);
+    assert!(height > 40.0 && height < 46.0, "the line's rise and about half the nib's 3 pt: {height}");
+}
+
+/// A brushed path keeps its drawn look when its stroke can't be read as the brush: the object's
+/// own settings differ from the brush's (Options of Selected Object), its angle follows the path,
+/// or the file defines no brush of its name.
+#[test]
+fn a_brushed_path_the_brush_cant_draw_keeps_its_drawn_look() {
+    let def = plugin_object(CALLIGRAPHIC, "Six D", SIX_D);
+    let mut own = SIX_D_SETTINGS;
+    own[0] = (9.0, 2.0);
+    let cases = [
+        ("its own settings", def.clone(), brushed_style("Six D", 1.0, own, [2, 5, 6], 0)),
+        ("its own modes", def.clone(), brushed_style("Six D", 1.0, SIX_D_SETTINGS, [2, 5, 4], 0)),
+        ("an angle on the path", def.clone(), brushed_style("Six D", 1.0, SIX_D_SETTINGS, [2, 5, 6], 1)),
+        ("no such brush", def, brushed_style("Other", 1.0, SIX_D_SETTINGS, [2, 5, 6], 0)),
+    ];
+    for (why, def, style) in cases {
+        let r = read_ok(&format!("{def}{style}{}", layer(&brushed_path())));
+        let a = art(&r.doc);
+        assert!(matches!(a[0].kind, NodeKind::Group { .. }), "{why}: the drawn look, {a:#?}");
+        assert!(r.warnings.iter().any(|w| w.contains("drawn look")), "{why}: {:?}", r.warnings);
+    }
 }
 
 use read::{GRAPH_PLAIN, GRAPH_UNENDED};
