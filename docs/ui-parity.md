@@ -1,6 +1,6 @@
 # UI and interaction parity
 
-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-11-05 · **Change:** minor (Layers panel: a layer whose Layer Options › Print is off shows its name italic, #5739; scores and estimates unchanged) · **Target:** Adobe Illustrator 2026 (30.x; Units › East Asian Type acts, with Q and Ha units; scores unchanged)
+> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-11-05 · **Change:** minor (object animation panel, canvas preview and CSS SVG export; parity scores and estimates unchanged; Layers panel: a layer whose Layer Options › Print is off shows its name italic, #5739; scores and estimates unchanged) · **Target:** Adobe Illustrator 2026 (30.x; Units › East Asian Type acts, with Q and Ha units; scores unchanged)
 
 ## Feature submission evidence
 
@@ -667,3 +667,21 @@ separate. Scores and hours unchanged. [Behavior and command details](development
 | 2026-10-22 | minor | Merge current main and complete the Turkish tab-drag labels and validation messages requested by the maintainer; all 24 catalogs covered; scores and estimates unchanged. |
 | 2026-10-22 | minor | Tab-drag follow-up: reconcile upstream progress updates and document drag lifecycle, insertion behavior and regression contracts; behavior, scores and estimates unchanged. |
 | 2026-10-22 | minor | Artwork dragged with Selection switches visible document tabs after a 400 ms hover, then copies editable artwork on canvas release; source and clipboard stay intact; scores and hours unchanged |
+
+## Object animation extension (2026-11-05)
+
+Keyframe selection now shows direct canvas handles for moving, scaling and rotating a pose,
+with transient draft preview, an opacity slider, Apply and Cancel. Numeric fields are optional.
+
+Window > Animation adds editable object pose keyframes (position, rotation, scale and opacity),
+per-track duration, delay, cubic Bezier easing and repetition; render-only canvas playback and
+scrubbing leave document history intact. Native documents retain tracks. SVG export writes CSS
+and annotations for reopening; SVG Tiny warns and stays static. This extends VectorCraft beyond
+the illustration parity target; estimated parity scores and remaining hours are unchanged.
+See [usage and limits](animation.md), `engine/src/tests/animation.rs`, SVG animation integration
+tests, native-format property tests and the headless panel/control tests. Arbitrary website CSS,
+PHP/JavaScript execution, animated filters and path morphing remain outside the scope.
+
+| Date | Change | Evidence |
+|---|---|---|
+| 2026-11-05 | minor | Object animation extension; parity scores and estimates unchanged. |

@@ -1,6 +1,6 @@
 # File format parity
 
-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-11-05 · **Change:** minor (PDF import: DeviceN gradients of a spot ink over process plates, #3235) · **Target:** Adobe Illustrator 2026 (30.x)
+> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-11-05 · **Change:** minor (object animation panel, canvas preview and CSS SVG export; parity scores and estimates unchanged; PDF import: DeviceN gradients of a spot ink over process plates, #3235) · **Target:** Adobe Illustrator 2026 (30.x)
 
 Every format Illustrator opens, places, saves or exports, against VectorCraft's format table (`FORMATS`,
 `OPEN_EXTS`, `PLACE_EXTS` in `crates/engine/src/cmd/fileio/formats.rs`). Illustrator's list comes from its public
@@ -318,3 +318,21 @@ Synthetic regressions: `tests::save::opened_eps_saves_to_its_own_file_with_edita
 `eps_save_bounds_large_page_preview_without_cropping_vector_or_editing_data`, and the UI regressions
 `file_save_writes_opened_eps_back_without_another_save_as_dialog` and
 `eps_save_as_keeps_page_options_and_writes_eps_without_export_only_switches`.
+
+## Object animation extension (2026-11-05)
+
+Keyframe selection now shows direct canvas handles for moving, scaling and rotating a pose,
+with transient draft preview, an opacity slider, Apply and Cancel. Numeric fields are optional.
+
+Window > Animation adds editable object pose keyframes (position, rotation, scale and opacity),
+per-track duration, delay, cubic Bezier easing and repetition; render-only canvas playback and
+scrubbing leave document history intact. Native documents retain tracks. SVG export writes CSS
+and annotations for reopening; SVG Tiny warns and stays static. This extends VectorCraft beyond
+the illustration parity target; estimated parity scores and remaining hours are unchanged.
+See [usage and limits](animation.md), `engine/src/tests/animation.rs`, SVG animation integration
+tests, native-format property tests and the headless panel/control tests. Arbitrary website CSS,
+PHP/JavaScript execution, animated filters and path morphing remain outside the scope.
+
+| Date | Change | Evidence |
+|---|---|---|
+| 2026-11-05 | minor | Object animation extension; parity scores and estimates unchanged. |

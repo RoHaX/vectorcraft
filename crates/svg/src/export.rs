@@ -22,6 +22,7 @@ use crate::{
 
 use crate::css::{self, Props, blend_css, css_string, font_descriptor};
 
+mod animation;
 mod nodes;
 mod output;
 mod paint;

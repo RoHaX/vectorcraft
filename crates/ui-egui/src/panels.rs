@@ -5,6 +5,7 @@
 
 pub mod actions;
 pub mod align;
+pub mod animation;
 pub mod appearance;
 pub mod artboards;
 pub mod asset_export;
@@ -173,6 +174,7 @@ pub fn show_icon_panel(app: &mut VectorcraftApp, ui: &mut Ui, id: &str) {
         "tabs" => tabs::show(app, ui),
         flattener_preview::ID => flattener_preview::show(app, ui),
         "attributes" => attributes::show(app, ui),
+        "animation" => animation::show(app, ui),
         svg_interactivity::ID => svg_interactivity::show(app, ui),
         variables::ID => variables::show(app, ui),
         "colorThemes" => color_themes::show(app, ui),

@@ -779,6 +779,8 @@ fn run_ui_part10(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Result
         "ui.smoothAuto" => crate::dialogs::smooth_slider::auto(app),
         "ui.dialogReset" => crate::dialogs::reset(app),
         "attributes.openUrl" => crate::panels::attributes::open_url(app, p),
+        "ui.animationEdit" => crate::panels::animation::edit_command(app, p),
+        "ui.animationPreview" => crate::panels::animation::control(app, p),
         "ui.javascriptFilesDialog" => crate::panels::svg_interactivity::files_dialog(app, p),
         "ui.spotColors" => crate::dialogs::spot_colors::open(app),
         "ui.menuDialog" => match s("command").as_deref() {

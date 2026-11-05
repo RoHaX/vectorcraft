@@ -206,6 +206,14 @@ pub(super) fn prepass<'s>(
     if markers.contains("data-") {
         for e in elements().filter(|e| OBJECT_ELEMENTS.contains(&e.tag_name().name())) {
             let data = user_data(e);
+            if let Some((_, value)) = data.iter().find(|(key, _)| key == "vectorcraft-animation")
+                && serde_json::from_str::<vectorcraft_doc::animation::Animation>(value).is_err()
+            {
+                let warning = "Invalid VectorCraft animation metadata was ignored".to_string();
+                if !found.warnings.contains(&warning) {
+                    found.warnings.push(warning);
+                }
+            }
             if !data.is_empty() {
                 found.data.insert(edits.id(svg, e), data);
             }

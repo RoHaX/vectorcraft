@@ -41,6 +41,7 @@ impl Serialize for Node {
             false,
             e.graphic_style.is_none(),
             e.attrs.is_none(),
+            e.animation.is_none(),
             e.slice.is_none(),
             is_default(&self.bbox_angle),
             e.perspective.is_none(),
@@ -82,6 +83,7 @@ impl Serialize for Node {
         field!("kind", &self.kind);
         field!("graphic_style", &e.graphic_style);
         field!("attrs", &e.attrs);
+        field!("animation", &e.animation);
         field!("slice", &e.slice);
         field!("bbox_angle", &self.bbox_angle);
         field!("perspective", &e.perspective);
@@ -132,7 +134,7 @@ fn counted_id<'de, D: serde::Deserializer<'de>>(d: D) -> Result<NodeId, D::Error
 }
 
 /// Count one object against [`with_node_budget`].
-fn count_one<E: serde::de::Error>() -> Result<(), E> {
+pub(crate) fn count_one<E: serde::de::Error>() -> Result<(), E> {
     if let Some((left, max)) = NODES_LEFT.get() {
         let left = left.checked_sub(1).ok_or_else(|| E::custom(format!("the document has more than {max} objects")))?;
         NODES_LEFT.set(Some((left, max)));
@@ -209,6 +211,8 @@ pub(super) struct NodeWire {
     #[serde(default)]
     attrs: Option<Box<ObjectAttributes>>,
     #[serde(default)]
+    animation: Option<Box<crate::animation::Animation>>,
+    #[serde(default)]
     slice: Option<Box<crate::SliceOptions>>,
     #[serde(default)]
     bbox_angle: f64,
@@ -247,6 +251,7 @@ impl From<NodeWire> for Node {
             shaper: w.shaper,
             graphic_style: w.graphic_style,
             attrs: w.attrs,
+            animation: w.animation,
             slice: w.slice,
             perspective: w.perspective,
             dimension: w.dimension,

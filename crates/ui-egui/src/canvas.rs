@@ -232,26 +232,34 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
     if bars {
         scroll_bars(app, ui, rect, outer, &t);
     }
+    crate::panels::animation::tick(app, ui.ctx());
+    let animation_preview = app.ui.animation.enabled;
     let resp = ui.interact(rect, egui::Id::unique("canvas"), Sense::click_and_drag());
-    canvas_input(app, ui, &resp, rect);
+    if !animation_preview {
+        canvas_input(app, ui, &resp, rect);
+    }
     let v = *app.view().unwrap_or(&View::default());
     let xf = Xf::new(rect, &v);
+    crate::panels::animation::canvas_input(app, ui, &resp, &xf);
     // While the view pans, zooms or turns under the pointer, the art under it isn't hit-tested.
     let wait = hover_wait(&mut app.canvas.view_moved, ViewKey { rect, zoom: v.zoom, center: v.center, rotation: v.rotation }, ui.input(|i| i.time));
     if let Some(secs) = wait {
         ui.ctx().request_repaint_after_secs(secs as f32);
     }
     let hover_still = wait.is_none();
-    let origin_preview = if app.ui.view.rulers && app.ui.screen_mode < 3 { ruler_input(app, ui, full, rect, &xf) } else { None };
-    crate::document_drag::drop_on_canvas(app, &resp, &xf);
-    panel_drop(app, ui, &resp, &xf);
+    let origin_preview =
+        if !animation_preview && app.ui.view.rulers && app.ui.screen_mode < 3 { ruler_input(app, ui, full, rect, &xf) } else { None };
+    if !animation_preview {
+        crate::document_drag::drop_on_canvas(app, &resp, &xf);
+        panel_drop(app, ui, &resp, &xf);
+    }
     // In Presentation Mode a right click or a long touch opens no context menu.
-    if app.ui.screen_mode < 3 {
+    if !animation_preview && app.ui.screen_mode < 3 {
         context_menu(app, &resp, &xf);
     }
     let painter = ui.painter_at(rect);
     let Some(st) = app.session.active() else { return };
-    let doc = st.doc.clone();
+    let doc = crate::panels::animation::document(st, &app.ui.animation, ui.ctx());
     let mask_view = st.shown_mask();
 
     paint_paper(app, st, ui, &painter, &xf, rect, (&t, app.outline_view()));
@@ -318,7 +326,7 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
     // 600% zoom, a line at every document pixel over the art, so the pixels it rasterizes to show.
     let revolve_edit = app.ui.dialog.as_ref().is_some_and(crate::dialogs::revolve_gizmo::active);
     let view_info = app.view_info();
-    if !presenting {
+    if !presenting && !animation_preview {
         if app.ui.view.pixel_preview && v.zoom >= PIXEL_GRID_ZOOM && app.session.prefs.show_pixel_grid {
             grid(&painter, &xf, 1.0, 1, LineLook { color: PIXEL_GRID, dots: false });
         }
@@ -342,6 +350,7 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
             shaper_widget_overlay(app, &painter, &xf);
         }
     }
+    crate::panels::animation::paint_handles(app, &painter, &xf);
     ime_geometry(app, ui.ctx(), &xf);
     crate::place::paint_drop_highlight(app, ui.ctx(), &painter, rect);
     // A Rotate View drag (the tool, or Space+Shift with any tool) shows the view's angle on a dial
@@ -358,17 +367,15 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
     // It gives way to a drag, not to a click: hidden for the length of every press, it flashed as
     // each click picked another object (#4681).
     let dragging = app.session.tool_busy() && ui.input(|i| i.pointer.is_decidedly_dragging());
-    if app.ui.task_bar && !revolve_edit && !dragging && app.ui.screen_mode < 3 && !strip {
+    if !animation_preview && app.ui.task_bar && !revolve_edit && !dragging && app.ui.screen_mode < 3 && !strip {
         task_bar(app, ui, &xf);
     }
-    if app.ui.screen_mode < 3 {
+    if !animation_preview && app.ui.screen_mode < 3 {
         contour_bar::contour_bar(app, ui, &xf);
-    }
-    if app.ui.screen_mode < 3 {
         crate::free_transform::show(app, ui, xf.rect);
     }
     artboard_name_editor(app, ui, &xf);
-    if resp.hovered() {
+    if resp.hovered() && !animation_preview {
         canvas_cursor(app, ui, view_info, hover_still);
     }
 }
@@ -512,6 +519,7 @@ fn cache_key(
         guide: ([guide_look.color.r(), guide_look.color.g(), guide_look.color.b()], guide_look.dots),
         doc: st.uid as usize,
         revision: st.revision,
+        animation_time: (app.ui.animation.enabled && app.ui.animation.document == st.uid).then_some(app.ui.animation.time),
         interacting: st.interaction.is_some(),
         zoom: v.zoom,
         cx: v.center.x,
@@ -557,7 +565,11 @@ fn poll_worker(app: &mut VectorcraftApp, ui: &Ui, key_doc: usize) {
         && done.key.doc == key_doc
     {
         let not_older = app.canvas.key.as_ref().filter(|k| k.doc == done.key.doc).is_none_or(|k| done.key.revision >= k.revision);
-        if not_older {
+        let animation_matches = app.session.active().is_some_and(|st| {
+            let expected = (app.ui.animation.enabled && app.ui.animation.document == st.uid).then_some(app.ui.animation.time);
+            done.key.animation_time == expected
+        });
+        if not_older && animation_matches {
             upload(app, ui.ctx(), done.img, done.key.pixel.is_some());
             app.canvas.key = Some(done.key);
             app.canvas.shown = Some((done.doc, done.opts));
@@ -653,7 +665,7 @@ fn draw_frame(app: &mut VectorcraftApp, ui: &Ui, frame: Frame) {
     let same_doc = app.canvas.key.as_ref().is_some_and(|k| k.doc == key.doc);
     let settling = app.canvas.moved && !key.interacting;
     let staying = key.interacting && app.canvas.from_worker;
-    let heavy = (app.canvas.last_ms > 8.0 || settling || staying) && app.canvas.texture.is_some() && same_doc;
+    let heavy = key.animation_time.is_none() && (app.canvas.last_ms > 8.0 || settling || staying) && app.canvas.texture.is_some() && same_doc;
     let changed = changed_pixels(app, key, doc, &opts, view, w, h);
     match (&mut app.canvas.worker, heavy, changed) {
         // Only the document changed since the frame shown, in a part of it: that part is

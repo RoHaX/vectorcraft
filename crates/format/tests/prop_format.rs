@@ -321,3 +321,20 @@ fn saved_views_round_trip_and_from_a_file_are_tidied() {
     v["document"]["views"] = json!([{"name": 5, "center": "x", "zoom": "big"}]);
     assert!(load(&serde_json::to_vec(&v).unwrap()).is_err());
 }
+
+// Animation is untrusted native-file data too: invalid controls are rejected by serde and valid
+// controls survive the compressed envelope, including percentage translations and opacity.
+proptest! {
+    #![proptest_config(ProptestConfig { cases: 32, failure_persistence: None, ..ProptestConfig::default() })]
+    #[test]
+    fn animation_native_roundtrip(x in -500.0f64..500.0, opacity in 0.0f64..1.0, duration in 0.01f64..30.0) {
+        let mut d=rich_doc();
+        let id=d.layers.first().unwrap().id;
+        let a:vectorcraft_doc::animation::Animation=serde_json::from_value(json!({"duration":duration,
+            "keyframes":[{"time":0,"xPercent":x,"opacity":opacity},{"time":1}]})).unwrap();
+        d.node_mut(id).unwrap().extras_mut().animation=Some(Box::new(a.clone()));
+        let bytes=save(&d,false);
+        let loaded=load(&bytes).unwrap();
+        prop_assert_eq!(loaded.node(id).unwrap().extras().animation.as_deref(),Some(&a));
+    }
+}

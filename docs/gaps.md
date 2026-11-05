@@ -1,6 +1,6 @@
 # Gaps
 
-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-11-05 · **Change:** minor (Compound Shapes add-on, beyond Illustrator; scores and estimates unchanged; Contour add-on, beyond Illustrator; scores and estimates unchanged; a slow first frame is waited for instead of restarting without the graphics adapter, and the menu bar no longer waits for the installed fonts' scan; scores and estimates unchanged) · **Target:** Adobe Illustrator 2026 (30.x)
+> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-11-05 · **Change:** minor (object animation extension noted without changing G6 estimates; Compound Shapes add-on, beyond Illustrator; scores and estimates unchanged; Contour add-on, beyond Illustrator; scores and estimates unchanged; a slow first frame is waited for instead of restarting without the graphics adapter, and the menu bar no longer waits for the installed fonts' scan; scores and estimates unchanged) · **Target:** Adobe Illustrator 2026 (30.x)
 
 ## Feature submission evidence
 
@@ -631,6 +631,8 @@ from G14 and the budget run of G15: **~170–270 h** one agent, ~50–80 h wall 
 
 ## G6 Automation and scripting
 
+- **Extension (2026-11-05):** [Object animation](animation.md) adds pose keyframes, canvas playback and CSS SVG export through commands and a panel. This does not close the general scripting-surface gap or change estimates.
+
 - **Missing:** a scripting surface over the command registry (Illustrator: JavaScript, File › Scripts;
   #1183 is open). Actions, Batch, Variables (text, visibility, image and graph), data set CSV import and
   export, and full agent control over MCP are done.
@@ -969,3 +971,5 @@ trap, and the defaults (0.25 pt, 100%, 40%) are VectorCraft's own, the pages giv
 2026-10-28 behavior correction: Flare ray rotation follows vertical travel at one degree per document point, independent of pointer event count. Shift freezes the current orientation; Space also freezes rotation on the first update. This is the chosen application interaction rate. Scores and estimates unchanged.
 ## EPS Save evidence (2026-10-26)
 Ordinary Save and Save As keep EPS as EPS, with the chosen page frame, transparent margins and the complete editable VectorCraft document. Existing import-loss confirmation and transparency warnings remain; the Save TIFF preview is capped at 1024 pixels, while Export retains 2048. See [file-format-parity.md](file-format-parity.md#eps-save-and-source-protection) for limits and regression evidence. This narrows G9 save-back workflow coverage; native Illustrator editing-data fidelity, parity scores and hour estimates are unchanged.
+
+| 2026-11-05 | minor | Object animation extension recorded under G6; scripting gap and estimates unchanged. |

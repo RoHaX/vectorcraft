@@ -83,7 +83,16 @@ impl Importer {
     /// inner element made of it keeps).
     pub(super) fn keep_data(&self, id: &str, n: &mut Node) {
         if let Some(data) = self.data.get(id).filter(|_| n.extras().attrs.as_ref().is_none_or(|a| a.data.is_empty())) {
-            n.edit_attrs(|a| a.data = data.clone());
+            if n.extras().animation.is_none()
+                && let Some((_, json)) = data.iter().find(|(key, _)| key == "vectorcraft-animation")
+                && let Ok(animation) = serde_json::from_str::<vectorcraft_doc::animation::Animation>(json)
+            {
+                n.extras_mut().animation = Some(Box::new(animation));
+            }
+            let user: Vec<_> = data.iter().filter(|(key, _)| key != "vectorcraft-animation").cloned().collect();
+            if !user.is_empty() {
+                n.edit_attrs(|a| a.data = user);
+            }
         }
     }
 
@@ -326,9 +335,12 @@ impl Importer {
             // shapes): fold its opacity, blend and effects into the object (unless the object
             // blends or masks before the effects). A text takes its own mask too. A group with
             // `data-*` or event attributes of its own stays a group, and keeps them.
-            let own = self.data.contains_key(g.id()) || self.events.contains_key(g.id());
+            let own = self.data.get(g.id()).is_some_and(|data| data.iter().any(|(key, _)| key != "vectorcraft-animation"))
+                || self.events.contains_key(g.id());
+            let animation_wrapper = self.data.get(g.id()).is_some_and(|data| data.iter().any(|(key, _)| key == "vectorcraft-animation"));
             if (is_text || id.is_empty() && mask.is_none() && !own)
                 && children.len() == 1
+                && (!animation_wrapper || children.first().is_none_or(|n| n.extras().animation.is_none()))
                 && (g.blend_mode() == usvg::BlendMode::Normal || children[0].blend == BlendMode::Normal)
                 && (effects.is_empty() || children[0].blend == BlendMode::Normal && children[0].extras().mask.is_none())
                 && let Some(only) = children.pop()

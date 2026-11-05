@@ -1,4 +1,39 @@
 # German (de) catalog. Same format as zh-hant.tsv:  context <TAB> source <TAB> translation
+# Object animation panel
+	Edit keyframe on canvas	Keyframe im Canvas bearbeiten
+	Drag inside to move, corners to scale, the round handle to rotate. Shift constrains.	Innen ziehen: verschieben. Eckgriffe: skalieren. Runder Griff: drehen. Umschalt schränkt ein.
+	Numeric pose values	Numerische Werte
+	Cancel pose changes	Pose abbrechen
+	Animation	Animation
+	Play	Abspielen
+	Pause	Pause
+	Restart	Neu starten
+	Loop preview	Vorschau wiederholen
+	Time (s)	Zeit (s)
+	Select an object to animate.	Objekt zum Animieren auswählen.
+	Selected object	Ausgewähltes Objekt
+	Duration (s)	Dauer (s)
+	Delay (s)	Verzögerung (s)
+	Repeat animation	Animation wiederholen
+	Easing presets	Bewegungskurven
+	Ease out	Sanft auslaufen
+	Overshoot	Überschwingen
+	Cubic Bézier	Kubische Bézierkurve
+	Keyframe	Schlüsselbild
+	Add keyframe	Schlüsselbild hinzufügen
+	Delete keyframe	Schlüsselbild löschen
+	Keyframe time (0–1)	Schlüsselbildzeit (0–1)
+	X (pt)	X (pt)
+	Y (pt)	Y (pt)
+	X (%)	X (%)
+	Y (%)	Y (%)
+	Rotation (°)	Drehung (°)
+	Scale X	Skalierung X
+	Scale Y	Skalierung Y
+	Opacity (0–1)	Deckkraft (0–1)
+	Remove Animation	Animation entfernen
+	Export animated SVG…	Animiertes SVG exportieren…
+	Open a document first.	Zuerst ein Dokument öffnen.
 # (empty context = a plain UI string; `@id` = a command id; `@plural` = "one|other" forms).
 #
 # Clean-room: written from the meaning of VectorCraft's English labels in standard German, using the

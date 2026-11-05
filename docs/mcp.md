@@ -2956,6 +2956,41 @@ paths and compound paths, and `path.reverse {reversed?}` makes subpaths run coun
 {"name":"run_command","arguments":{"command":"path.setFillRule","params":{"rule":"evenOdd"}}}
 ```
 
+## Object animation
+
+`animation.info {ids?|id?}` returns `objects: [{id, name, animation}]` for the selection or explicit
+targets, and the whole document's `duration` including delays. `animation.set {ids?|id?, animation}`
+replaces tracks in one Undo step; `animation.remove {ids?|id?}` removes them. Locked or hidden targets
+and missing IDs fail atomically. Identical tracks are a no-op. Tracks persist in native documents
+and export to CSS SVG, with annotations for reopening in VectorCraft.
+
+```json
+{"command":"animation.set","params":{"animation":{"duration":1.5,"delay":0.2,"easing":[0.2,0.7,0.2,1.15],"repeat":false,"keyframes":[{"time":0,"xPercent":40,"rotation":20,"scaleX":0.9,"scaleY":0.9,"opacity":0},{"time":0.7,"x":2,"rotation":-2},{"time":1}]}}}
+{"command":"ui.animationPreview","params":{"restart":true,"playing":true}}
+```
+
+Keyframes have normalized `time` (0–1), offsets `x`/`y` in points and `xPercent`/`yPercent`, clockwise
+`rotation`, `scaleX`/`scaleY` (default 1) and an `opacity` multiplier (default 1). Omitted offsets and
+rotation are zero. First/last times must be 0/1, all times strictly increasing. Limits: 2–256 frames,
+duration 0.001–3600 seconds, delay 0–3600 seconds, finite pose values; Bézier x controls are 0–1,
+y controls −10–10. Easing defaults to linear. Before/after the track, first/last poses are held.
+
+`window.panel {panel:"animation"}` opens the panel. `ui.animationPreview {enabled?, playing?, time?,
+restart?, repeat?}` controls native canvas playback and returns `{enabled, playing, time, duration}`.
+Scrubbing pauses, `enabled:false` restores the unanimated canvas, and switching documents resets
+playback. `repeat` repeats the preview pass independently of each track's exported repetition.
+Playback never edits the document or its Undo history. [Usage and limitations](animation.md).
+
+`ui.animationEdit {action:"begin", id?, frame?:0, animation?}` selects a keyframe of the first selected
+object for direct canvas editing, seeking to its exact pose (including the endpoint of a repeating
+track). Optional `animation` starts with a draft track. Inside the frame moves, corner handles scale
+about the centre and the round handle rotates. Shift constrains translation, scale ratio or rotation
+to 15-degree steps. Parent animation transforms and rotated views are accounted for.
+`ui.animationEdit {action:"pose", pose:{x?, y?, rotation?, scaleX?, scaleY?, opacity?, xPercent?, yPercent?}}`
+updates only that transient pose; the normalized keyframe time cannot change. `action:"apply"`
+runs `animation.set` as one Undo step, preserving original artwork geometry and other keyframes;
+`action:"cancel"` discards the draft. Playback/scrubbing can preview the draft before applying it.
+
 ## SVG interactivity
 
 The SVG Interactivity panel (`window.panel {panel: "svgInteractivity"}`) reads `svgInteractivity.info {ids?}`:

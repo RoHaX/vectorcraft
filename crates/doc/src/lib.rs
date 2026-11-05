@@ -5,6 +5,7 @@
 //! Keeping the previous `Document` value around is therefore a cheap undo snapshot.
 #![forbid(unsafe_code)]
 
+pub mod animation;
 pub mod appearance;
 pub mod assets;
 pub mod blend;

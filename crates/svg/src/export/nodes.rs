@@ -487,6 +487,7 @@ impl Writer<'_> {
     pub(super) fn node(&mut self, n: &Node) {
         let layer = usize::from(n.is_layer());
         self.layer_nest += layer;
+        let animated = self.animation_start(n);
         match n.url().filter(|_| n.visible && !self.anonymous) {
             Some(url) => {
                 if !valid_xml_value(url) {
@@ -499,6 +500,10 @@ impl Writer<'_> {
                 self.line("</a>");
             }
             None => self.node_body(n),
+        }
+        if animated {
+            self.depth -= 1;
+            self.line("</g>");
         }
         self.layer_nest -= layer;
     }

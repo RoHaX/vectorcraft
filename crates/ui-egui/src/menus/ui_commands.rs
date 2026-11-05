@@ -1,6 +1,18 @@
 /// UI-level commands: (id, label, shortcut, params doc).
 pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
     (
+        "ui.animationEdit",
+        "Edit Animation Keyframe",
+        "",
+        "{action?: begin|pose|apply|cancel, id?: selected object id, frame?: keyframe index (default 0), animation?: draft track for begin, pose?: partial keyframe values for pose} edit a keyframe on a render-only canvas copy with move, scale and rotation handles; Apply runs animation.set as one Undo step, Cancel discards the draft; pose keeps the keyframe time",
+    ),
+    (
+        "ui.animationPreview",
+        "Animation Preview",
+        "",
+        "{enabled?: bool, playing?: bool, time?: seconds 0?7200, restart?: bool, repeat?: bool} control render-only canvas playback on the active document; no document edits or Undo steps ? {enabled, playing, time, duration}",
+    ),
+    (
         crate::addons::pathtools::corner::COMMAND,
         "Corner Tool",
         "",

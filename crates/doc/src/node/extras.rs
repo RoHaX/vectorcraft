@@ -8,6 +8,8 @@ use super::{Node, PathData};
 /// them stay small ([`Node::extras`]).
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct NodeExtras {
+    /// Editable animation; evaluated only for preview and CSS SVG export.
+    pub animation: Option<Box<crate::animation::Animation>>,
     /// Opacity mask (Transparency panel). Its art lives here, outside the layer tree.
     pub mask: Option<Box<OpacityMask>>,
     /// Image Trace object: `{preset, params, view?}` it was traced with (the Image Trace panel shows
@@ -70,6 +72,7 @@ pub struct NodeExtras {
 
 /// No extras: what [`Node::extras`] gives for a node without any.
 pub(super) static NO_EXTRAS: NodeExtras = NodeExtras {
+    animation: None,
     mask: None,
     trace: None,
     wrap: None,

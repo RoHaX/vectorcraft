@@ -32,6 +32,7 @@ pub use kind::{ImageObject, MAX_BUFFERED_VALUES, NodeKind, with_buffered_value_b
 pub use live_shape::{LiveShape, Scaling};
 pub use opacity::{Knockout, OpacityMask, whiten};
 use wire::NodeWire;
+pub(crate) use wire::count_one as count_read_item;
 pub use wire::{MAX_READ_NODES, with_node_budget};
 
 fn yes() -> bool {

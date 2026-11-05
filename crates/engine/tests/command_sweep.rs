@@ -60,6 +60,23 @@ fn registry_is_well_formed() {
 }
 
 #[test]
+fn animation_nested_untrusted_parameters_never_panic_or_partially_edit() {
+    for value in junk_values() {
+        for animation in
+            [value.clone(), json!({"keyframes":value}), json!({"easing":value}), json!({"keyframes":[{"time":0,"scaleX":value},{"time":1}]})]
+        {
+            let mut s = Fixture::Multi.session();
+            let before = doc_json(&s.doc().unwrap().doc);
+            let reply = catch_quiet(|| no_panic(s.execute("animation.set", &json!({"animation":animation})))).unwrap();
+            if reply.is_err() {
+                assert_eq!(doc_json(&s.doc().unwrap().doc), before);
+            }
+            check_session(&s).unwrap();
+        }
+    }
+}
+
+#[test]
 fn every_command_with_empty_params_in_every_fixture() {
     let mut failures = vec![];
     for fx in Fixture::ALL {

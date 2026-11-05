@@ -1,6 +1,6 @@
 # Parity with Adobe Illustrator
 
-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-11-05 · **Change:** minor (Layers panel: a layer whose Layer Options › Print is off shows its name italic, #5739; scores and estimates unchanged) · **Target:** Adobe Illustrator 2026 (30.x; public release notes through 30.7, August 2026)
+> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-11-05 · **Change:** minor (object animation panel, canvas preview and CSS SVG export; parity scores and estimates unchanged; Layers panel: a layer whose Layer Options › Print is off shows its name italic, #5739; scores and estimates unchanged) · **Target:** Adobe Illustrator 2026 (30.x; public release notes through 30.7, August 2026)
 
 ## Feature submission evidence
 
@@ -194,7 +194,7 @@ dominate; 3D, graphs and automation are specialist). They sum to 105. Feature de
 | Guides, grids, smart guides, snapping, rulers | 3 | 80% | "intersect" smart guides for a moved selection's anchors (drawn points and dragged anchors snap to intersections, #1658), global/artboard ruler mode switch and video rulers, distance readouts while drawing | 4–7 | estimated (lowered from 85%: target moved); new ruler-guide Alt orientation implemented; status-bar X/Y uses the active ruler origin and General units |
 | Export for Screens, Asset Export, slices, Save for Web | 3 | 85% | anti-aliasing ghost borders (#983); TIFF choices and settings are implemented | 2–4 | estimated |
 | Print, colour management, separations, flattener | 3 | 80% | print preview fidelity | 2–4 | estimated |
-| Automation (Actions, Variables, scripting, batch) | 3 | 60% | a scripting surface (Illustrator: JavaScript/ExtendScript), Batch, image and graph variables, dataset import/export | 8–14 | estimated; MCP `add_text` exposes existing vertical type; score and hours unchanged |
+| Automation (Actions, Variables, scripting, batch) | 3 | 60% | a scripting surface (Illustrator: JavaScript/ExtendScript), Batch, image and graph variables, dataset import/export | 8–14 | estimated; MCP `add_text` exposes existing vertical type; score and hours unchanged; object pose animation is an additional VectorCraft feature (see animation.md); score and hours unchanged |
 | UI chrome (panels, Properties, workspaces, preferences) | 6 | 80% | Properties per context, 3 Preferences options stored but unused (#394, audited 2026-10-30: Open Documents As Tabs, Scratch Disks, legacy vector clipboard), SVG Interactivity, context menus beyond the canvas, accessibility | 13–20 | estimated; floating panels in OS windows of their own on the desktop (#4135), score and hours unchanged; macOS save Format menu implemented (#866), score and hours unchanged; Eyedropper cursor and precise setting checked (#1269), OS visual QA unverified; numeric-field focus and normal text drags regression-tested (#1326, in part); movements below the click threshold still select all; artboard navigation synchronizes the tool selection before destructive actions; status messages and readouts use stable responsive allocations sized for localized labels and ordinary coordinates (sample widths cached by language/unit/DPI; regression and contributor original-file evidence below; scores/hours unchanged) |
 | Libraries, Links, Package | 2 | 82% | shared libraries, linked graphics, gradients and patterns as library items (no cloud by design) | 2–3 | estimated |
 | Generative AI (Text to Vector, Generative Recolor, Shape Fill, Concept to Vector, Prompt to Edit, Rewrite Text) | 2 | 0% | a pluggable provider and the panels; needs an owner decision on models | 30–60 | measured (absent) |
@@ -2022,3 +2022,21 @@ Edit › Copy and Cut put the selected ruler guides on the clipboard, with the s
 2026-10-28 Flare interaction: the center drag turns only the rays by one degree per document point of increasing pointer y and back at the same rate for decreasing y. This is an application rule independent of event frequency. Shift keeps the current turn; Space during either drag moves the flare without changing its size or turn, including the first drag sample. Releasing a modifier resumes from the current pointer position without catching up skipped rotation. Scores and remaining estimates unchanged.
 ## EPS Save evidence (2026-10-26)
 Ordinary Save and Save As keep EPS as EPS, with the chosen page frame, transparent margins and the complete editable VectorCraft document. Existing import-loss confirmation and transparency warnings remain; the Save TIFF preview is capped at 1024 pixels, while Export retains 2048. See [file-format-parity.md](file-format-parity.md#eps-save-and-source-protection) for limits and regression evidence. This narrows G9 save-back workflow coverage; native Illustrator editing-data fidelity, parity scores and hour estimates are unchanged.
+
+## Object animation extension (2026-11-05)
+
+Keyframe selection now shows direct canvas handles for moving, scaling and rotating a pose,
+with transient draft preview, an opacity slider, Apply and Cancel. Numeric fields are optional.
+
+Window > Animation adds editable object pose keyframes (position, rotation, scale and opacity),
+per-track duration, delay, cubic Bezier easing and repetition; render-only canvas playback and
+scrubbing leave document history intact. Native documents retain tracks. SVG export writes CSS
+and annotations for reopening; SVG Tiny warns and stays static. This extends VectorCraft beyond
+the illustration parity target; estimated parity scores and remaining hours are unchanged.
+See [usage and limits](animation.md), `engine/src/tests/animation.rs`, SVG animation integration
+tests, native-format property tests and the headless panel/control tests. Arbitrary website CSS,
+PHP/JavaScript execution, animated filters and path morphing remain outside the scope.
+
+| Date | Change | Evidence |
+|---|---|---|
+| 2026-11-05 | minor | Object animation extension; parity scores and estimates unchanged. |

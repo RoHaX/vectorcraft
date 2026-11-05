@@ -199,6 +199,7 @@ pub const ICON_PANELS: &[(&str, &str, &str)] = &[
     ("magicWand", "Magic Wand", "wand-sparkles"),
     (crate::panels::flattener_preview::ID, "Flattener Preview", "eye"),
     ("attributes", "Attributes", "settings"),
+    ("animation", "Animation", "play"),
     (crate::panels::svg_interactivity::ID, "SVG Interactivity", "spline-pointer"),
     ("colorThemes", "Color Themes", "sun"),
     (crate::panels::links::ID, "Links", "link"),
@@ -343,6 +344,9 @@ pub struct ReplaceFontWarning {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(default)]
 pub struct UiState {
+    /// Render-only animation playback; never saved as document edits or workspace settings.
+    #[serde(skip)]
+    pub animation: crate::panels::animation::Playback,
     /// The interface language older versions saved here (`ja`, `cs`…). It now lives in the
     /// `interfaceLanguage` preference, which [`crate::prefs_dialog::restore`] carries it over to;
     /// it is never written back.
@@ -948,6 +952,7 @@ impl Default for UiState {
     /// The interface of a first start.
     fn default() -> Self {
         Self {
+            animation: Default::default(),
             legacy_language: None,
             brightness: Brightness::MediumDark,
             dock_tab: DockTab::Properties,

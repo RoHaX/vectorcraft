@@ -631,6 +631,7 @@ pub fn menu_tree_named(english_names: bool) -> Vec<(&'static str, Vec<Item>)> {
             let mut panels = vec![
                 panel("Actions", "actions"),
                 panel("Align", "align"),
+                panel("Animation", "animation"),
                 panel("Appearance", "appearance"),
                 panel("Artboards", "artboards"),
                 panel("Asset Export", crate::panels::asset_export::ID),

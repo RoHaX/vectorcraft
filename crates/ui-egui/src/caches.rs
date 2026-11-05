@@ -76,6 +76,8 @@ pub type PrintTilingCache = ((u64, u64), std::sync::Arc<Vec<vectorcraft_pdf::Til
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct CacheKey {
+    /// Render-only animation time; separate from document revision and dirty state.
+    pub animation_time: Option<f64>,
     pub doc: usize,
     pub revision: u64,
     /// An interaction is in progress ([`vectorcraft_render::RenderOptions::interacting`]).
